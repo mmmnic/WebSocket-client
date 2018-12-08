@@ -90,7 +90,7 @@ void loop()
     }
     // If Reconnect's successed
     if (client.connected()) {
-      // Print on IDE con
+      // Print on IDE
       Serial.println("Connected to Host");
       // Send text to webSocket server
       client.print(WiFi.localIP());
