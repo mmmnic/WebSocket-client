@@ -3,11 +3,11 @@
 #include <SoftwareSerial.h>
 
 // Enter your wifi name and password here
-const char* ssid = "            ";
-const char* password = "khongphaicaido";
+const char* ssid = "UIT_Guest";
+const char* password = "1denmuoi1";
 
 // Enter you websocket server host and port here
-char host[] = "192.168.1.9";
+char host[] = "192.168.0.107";
 int port = 8000;
 
 // Create WebSocket client
@@ -65,7 +65,7 @@ void loop()
   NucToServer();
 
   // Nani Delay???
-  delay(100);
+  delay(200);
 
  
   // if the server's disconnected
