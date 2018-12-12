@@ -2,6 +2,11 @@
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 
+// RX is pin D5
+#define RXpin D5
+// TX is pin D6
+#define TXpin D6
+
 // Enter your wifi name and password here
 const char* ssid = "UIT_Guest";
 const char* password = "1denmuoi1";
@@ -13,6 +18,9 @@ int port = 8000;
 // Create WebSocket client
 WiFiClient client;
 
+// Create Serial communicate with NUC
+SoftwareSerial NUCSerial(RXpin, TXpin);
+
 
 //------------------------ SETUP ---------------------------
 void setup()
@@ -22,7 +30,8 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
 
   // create serial to communicate with IDE for debug
-  Serial.begin(9600);
+  Serial.begin(115200);
+  NUCSerial.begin(115200);
   delay(50);
 
   //----------------- CONNECT TO WIFI ----------------------
@@ -59,13 +68,14 @@ void setup()
 
 void loop()
 {
+  
   //Receive from server and send to NUC
   ServerToNuc();
   //Reveive from NUC and send to Server
   NucToServer();
 
   // Nani Delay???
-  delay(200);
+  //delay(1000);
 
  
   // if the server's disconnected
@@ -94,8 +104,8 @@ void NucToServer()
   String dataRecieve = "";
 
   // Convert byte received into string
-  while (Serial.available()>0) {
-    char c = Serial.read();
+  while (NUCSerial.available()>0) {
+    char c = NUCSerial.read();
     if (c=='*')
     {
       break;
@@ -142,7 +152,7 @@ void ServerToNuc()
     dataRecieve += c;
   }
 
-  // If string is not empty send to server
+  // If string is not empty send to NUC
   if (dataRecieve!="")
   {
     // Declare Json buffer size = 1024 MB
@@ -162,9 +172,9 @@ void ServerToNuc()
       data["ID"] = nuc_ID;
       data["BUTTON"] = nuc_BUTTON;
 
-      // Send to selerver
-      data.printTo(Serial);
-      Serial.print('*');
+      // Send to NUC
+      data.printTo(NUCSerial);
+      NUCSerial.print('*');
     }
   }
 }
