@@ -6,7 +6,19 @@
 #define RXpin D5
 // TX is pin D6
 #define TXpin D6
+// Define button
+#define UP '1'
+#define DOWN '2'
+#define LEFT '3'
+#define RIGHT '4'
+#define OK '5'
+#define CANCEL '6'
+#define RUNG_YEU 'r'
+#define RUNG_MANH 'R'
 
+// Declare Nuc ID
+  const char* nuc_ID = "1";
+  
 // Enter your wifi name and password here
 const char* ssid = "UIT_Guest";
 const char* password = "1denmuoi1";
@@ -20,8 +32,7 @@ WiFiClient client;
 
 // Create Serial communicate with NUC
 SoftwareSerial NUCSerial(RXpin, TXpin);
-
-
+    
 //------------------------ SETUP ---------------------------
 void setup()
 {
@@ -74,10 +85,6 @@ void loop()
   //Reveive from NUC and send to Server
   NucToServer();
 
-  // Nani Delay???
-  //delay(1000);
-
- 
   // if the server's disconnected
   if (!client.connected()) {
     Serial.println();
@@ -101,42 +108,61 @@ void loop()
 // Decode string then encode to json object and send to Server
 void NucToServer()
 {
-  String dataRecieve = "";
-
-  // Convert byte received into string
-  while (NUCSerial.available()>0) {
-    char c = NUCSerial.read();
-    if (c=='*')
-    {
-      break;
-    }
-    dataRecieve += c;
-  }
-
-  // If string is not empty send to server
-  if (dataRecieve!="")
+  String nuc_BUTTON = "";
+  
+  if (NUCSerial.available()>0)
   {
-    // Declare Json buffer size = 1024 MB
+    char c = NUCSerial.read();
+     switch (c)
+     {
+      case '1':
+      {
+        nuc_BUTTON = "UP";
+        break;
+      }
+      case '2':
+      {
+        nuc_BUTTON = "DOWN";
+        break;
+      }
+        case '3':
+      {
+        nuc_BUTTON = "LEFT";
+        break;
+      }
+      case '4':
+      {
+        nuc_BUTTON = "RIGHT";
+        break;
+      }
+      case '5':
+      {
+        nuc_BUTTON = "OK";
+        break;
+      }
+      case '6':
+      {
+        nuc_BUTTON = "CANCEL";
+        break;
+      }
+     }
+  }
+  
+  // If button is not empty then send to server
+  if (nuc_BUTTON != "")
+  {
+    // Declare JSON buffer size
     StaticJsonBuffer<1023> jsonBuffer;
 
-    // Decode the data string
-    JsonObject& root = jsonBuffer.parseObject(dataRecieve);
-    // Redecode if decode fail
-    if (root.success())
-    {
-      const char* nuc_ID = root["ID"];
-      const char* nuc_BUTTON = root["BUTTON"];
+    // Create json object
+    JsonObject& data = jsonBuffer.createObject();
+    // assign data to json object
+    data["ID"] = nuc_ID;
+    data["BUTTON"] = nuc_BUTTON;
 
-      // Create json object
-      JsonObject& data = jsonBuffer.createObject();
-      // assign data to json object
-      data["ID"] = nuc_ID;
-      data["BUTTON"] = nuc_BUTTON;
-
-      // Send to selerver
-      data.printTo(client);
-    }
-  }
+    // Send to server
+    data.printTo(client);
+   }
 }
 
 void ServerToNuc()
@@ -145,36 +171,29 @@ void ServerToNuc()
   // Convert byte received into string
   while (client.available()>0) {
     char c = client.read();
-    if (c=='*')
-    {
-      break;
-    }
     dataRecieve += c;
   }
 
   // If string is not empty send to NUC
-  if (dataRecieve!="")
+  if (dataRecieve != "")
   {
-    // Declare Json buffer size = 1024 MB
+    // Declare JSON buffer size
     StaticJsonBuffer<1023> jsonBuffer;
-
+    
     // Decode the data string
-    JsonObject& root = jsonBuffer.parseObject(dataRecieve);
-    // Redecode if decode fail
-    if (root.success())
+    JsonObject& data = jsonBuffer.parseObject(dataRecieve);
+
+    if (data.success())
     {
-      const char* nuc_ID = root["ID"];
-      const char* nuc_BUTTON = root["BUTTON"];
-
-      // Create json object
-      JsonObject& data = jsonBuffer.createObject();
-      // assign data to json object
-      data["ID"] = nuc_ID;
-      data["BUTTON"] = nuc_BUTTON;
-
-      // Send to NUC
-      data.printTo(NUCSerial);
-      NUCSerial.print('*');
+      const char* receive_ID = data["ID"];
+      const char* nuc_BUTTON = data["BUTTON"];
+      if (strcmp(receive_ID,nuc_ID) == 0)
+      {
+          if (strcmp(nuc_BUTTON,"R") ==0)
+            NUCSerial.println('R');
+          else if (strcmp(nuc_BUTTON,"r") ==0)
+            NUCSerial.println('r');
+      }
     }
   }
 }
