@@ -2,6 +2,17 @@
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 
+// Nhap ID cua tay cam o day, 1 hoac 2
+  const char* nuc_ID = "1";
+  
+// Nhap ten wifi va mat khau wifi o day
+const char* ssid = "TenWifi";
+const char* password = "MatKhauWifi";
+
+// Nhap dia chi va port cua server o day 
+char host[] = "192.168.0.107";
+int port = 8000;
+
 // RX is pin D5
 #define RXpin D5
 // TX is pin D6
@@ -15,17 +26,6 @@
 #define CANCEL '6'
 #define RUNG_YEU 'r'
 #define RUNG_MANH 'R'
-
-// Declare Nuc ID
-  const char* nuc_ID = "1";
-  
-// Enter your wifi name and password here
-const char* ssid = "UIT_Guest";
-const char* password = "1denmuoi1";
-
-// Enter you websocket server host and port here
-char host[] = "192.168.0.107";
-int port = 8000;
 
 // Create WebSocket client
 WiFiClient client;
@@ -189,10 +189,10 @@ void ServerToNuc()
       const char* nuc_BUTTON = data["BUTTON"];
       if (strcmp(receive_ID,nuc_ID) == 0)
       {
-          if (strcmp(nuc_BUTTON,"R") ==0)
-            NUCSerial.println('R');
-          else if (strcmp(nuc_BUTTON,"r") ==0)
-            NUCSerial.println('r');
+          if (strcmp(nuc_BUTTON, "R") ==0)
+            NUCSerial.println(RUNG_MANH);
+          else if (strcmp(nuc_BUTTON, "r") ==0)
+            NUCSerial.println(RUNG_YEU);
       }
     }
   }
