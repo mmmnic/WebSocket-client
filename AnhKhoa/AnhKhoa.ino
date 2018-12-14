@@ -3,16 +3,21 @@
 #include <SoftwareSerial.h>
 
 // Nhap ID cua tay cam o day, 1 hoac 2
-  const char* nuc_ID = "1";
+  const char* nuc_ID = "2";
   
 // Nhap ten wifi va mat khau wifi o day
-const char* ssid = "TenWifi";
-const char* password = "MatKhauWifi";
+  const char* ssid = "UIT_Guest";
+  const char* password = "1denmuoi1";
 
 // Nhap dia chi va port cua server o day 
-char host[] = "192.168.0.107";
-int port = 8000;
+  char host[] = "14.186.70.185";
+  int port = 3000;
 
+// define string to send
+   String s_head = "{\"ID\":\"";
+   String s_middle = "\",\"BUTTON\":\"";
+   String s_end = "\"}";
+   
 // RX is pin D5
 #define RXpin D5
 // TX is pin D6
@@ -71,37 +76,17 @@ void setup()
   // If connection's successed
   if (client.connected()) {
     Serial.println("Connected to Host");
-    // Send esp8266's ip to webSocket server
-    client.print(WiFi.localIP());
-    client.println(" just connected");
   }
 }
 
 void loop()
 {
-  
-  //Receive from server and send to NUC
-  ServerToNuc();
-  //Reveive from NUC and send to Server
+  // Recieve data from server
   NucToServer();
-
-  // if the server's disconnected
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("Lost connection from server!");
-    Serial.println("Reconnecting...");
-    // Reconnect to WebSocket server
-    while (!client.connect(host, port))
-    {
-      Serial.println("Reconnecting...");
-    }
-    // If Reconnect's successed
-    if (client.connected()) {
-      Serial.println("Connected to Host");
-      client.print(WiFi.localIP());
-      client.println(" just connected");
-    }
-  }
+  // Check if lost connection to server
+  CheckServer();
+  // Check if lost connectio to wifi
+  CheckWifi();
 }
 
 
@@ -109,10 +94,20 @@ void loop()
 void NucToServer()
 {
   String nuc_BUTTON = "";
-  
+
+  // check if receive data from NUC
   if (NUCSerial.available()>0)
   {
+    // Read data from NUC
     char c = NUCSerial.read();
+    /*
+     * number 1 is up
+     * number 2 is down
+     * number 3 is left
+     * number 4 is right
+     * number 5 is ok
+     * number 6 is cancel
+     */
      switch (c)
      {
       case '1':
@@ -151,49 +146,59 @@ void NucToServer()
   // If button is not empty then send to server
   if (nuc_BUTTON != "")
   {
-    // Declare JSON buffer size
-    StaticJsonBuffer<1023> jsonBuffer;
-
-    // Create json object
-    JsonObject& data = jsonBuffer.createObject();
-    // assign data to json object
-    data["ID"] = nuc_ID;
-    data["BUTTON"] = nuc_BUTTON;
-
-    // Send to server
-    data.printTo(client);
-   }
+    // add head part to jsonString
+    String jsonString = s_head;
+    // add ID to jsonString 
+    jsonString += nuc_ID;
+    // add middle part
+    jsonString += s_middle;
+    // add BUTTON to jsonString
+    jsonString += nuc_BUTTON;
+    // add end to jsonString
+    jsonString += s_end;
+    
+    // Send data to server
+    client.print(jsonString);
+  }
 }
 
-void ServerToNuc()
+void CheckServer()
 {
-  String dataRecieve = "";
-  // Convert byte received into string
-  while (client.available()>0) {
-    char c = client.read();
-    dataRecieve += c;
-  }
-
-  // If string is not empty send to NUC
-  if (dataRecieve != "")
+  // check server connection
+  if (!client.connected())
   {
-    // Declare JSON buffer size
-    StaticJsonBuffer<1023> jsonBuffer;
-    
-    // Decode the data string
-    JsonObject& data = jsonBuffer.parseObject(dataRecieve);
-
-    if (data.success())
+    // if lost connection
+    Serial.println("Lost connection from server!");
+    Serial.println("Reconnecting...");
+    // Reconnect to WebSocket server
+    while (!client.connect(host, port))
     {
-      const char* receive_ID = data["ID"];
-      const char* nuc_BUTTON = data["BUTTON"];
-      if (strcmp(receive_ID,nuc_ID) == 0)
-      {
-          if (strcmp(nuc_BUTTON, "R") ==0)
-            NUCSerial.println(RUNG_MANH);
-          else if (strcmp(nuc_BUTTON, "r") ==0)
-            NUCSerial.println(RUNG_YEU);
-      }
+      Serial.println("Reconnecting...");
     }
+    // If Reconnect's successed
+    if (client.connected()) {
+      Serial.println("Connected to Host");
+    }
+  }
+}
+
+
+void CheckWifi()
+{
+  // check wifi connection
+  if (WiFi.status() != WL_DISCONNECTED)
+  {
+      // Reconnect to wifi
+      WiFi.begin(ssid, password);
+
+      // Waiting for connected
+      while (WiFi.status() != WL_CONNECTED)
+      {
+         delay(1000);
+         Serial.println("Connecting...");
+      }
+      // Print esp8266's IP
+      Serial.print("WiFi connected with IP: ");
+      Serial.println(WiFi.localIP());
   }
 }
